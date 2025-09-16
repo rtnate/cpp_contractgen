@@ -1,0 +1,75 @@
+// Auto-generated from {{ contract.source }}
+#pragma once
+#include <type_traits>
+
+// === Traits ================================================================
+
+template<typename T>
+struct {{ contract.name }}_Traits {
+{% for m in contract.methods %}
+    static constexpr bool has_{{m.name}} =
+        std::is_same<decltype(&T::{{m.name}}),
+                     {{m.ret}}(T::*)({{m.arg_types}}){% if m.const %} const{% endif %}>::value;
+    static_assert(has_{{m.name}}, 
+        "Type must implement {{m.ret}} {{m.name}}({{m.arg_types}}){% if m.const %} const{% endif %}");
+{% endfor %}
+};
+
+#define IMPLEMENTS_CONTRACT_{{ contract.name }}(X) \
+    using traits = {{ contract.name }}_Traits<X>; \
+    static_assert(true, ""); // force instantiation
+
+// === Interface =============================================================
+
+class {{ contract.name }}_Interface {
+public:
+    virtual ~{{ contract.name }}_Interface() = default;
+{% for m in contract.methods %}
+    virtual {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} = 0;
+{% endfor %}
+};
+
+// === Wrapper ===============================================================
+
+template<typename Impl, bool use_virtual = false>
+class {{ contract.name }}Wrapper {
+    IMPLEMENTS_CONTRACT_{{ contract.name }}(Impl);
+
+public:
+    {{ contract.name }}Wrapper(Impl& impl) : impl_(impl) {}
+
+{% for m in contract.methods %}
+    {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} {
+        return impl_.{{ m.name }}({{ m.arg_names|join(", ") }});
+    }
+{% endfor %}
+
+protected:
+    Impl& impl_;
+};
+
+// Specialization for virtual
+template<typename Impl>
+class {{ contract.name }}Wrapper<Impl, true> : public {{ contract.name }}_Interface {
+    IMPLEMENTS_CONTRACT_{{ contract.name }}(Impl);
+
+public:
+    {{ contract.name }}Wrapper(Impl& impl) : impl_(impl) {}
+
+{% for m in contract.methods %}
+    {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} override {
+        return impl_.{{ m.name }}({{ m.arg_names|join(", ") }});
+    }
+{% endfor %}
+
+protected:
+    Impl& impl_;
+};
+
+// === Aliases ===============================================================
+
+template<typename Impl>
+using {{ contract.name }} = {{ contract.name }}Wrapper<Impl, false>;
+
+template<typename Impl>
+using {{ contract.name }}Virtual = {{ contract.name }}Wrapper<Impl, true>;

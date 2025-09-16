@@ -1,0 +1,6 @@
+define_contract MyComb {
+    bool setDelaySamples(uint32_t d);
+    float readTail(uint32_t i) const;
+    void writeTail(uint32_t i, float s);
+    void advance();
+};
