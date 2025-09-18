@@ -1,5 +1,5 @@
 import re
-import os 
+import os
 from dataclasses import dataclass
 from typing import List
 
@@ -8,60 +8,84 @@ class Method:
     ret: str
     name: str
     args: str
-    arg_names: List[str]
-    arg_types: List[str]
     const: bool = False
 
 @dataclass
 class Contract:
+    source: str
     name: str
     methods: List[Method]
-    source: str
-
+    preamble: str
+    postamble: str
 
 def parse_contract(path: str) -> Contract:
     with open(path) as f:
         text = f.read()
 
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    lines = [l.rstrip() for l in text.splitlines()]
 
-    name = None
+    in_contract = False
+    saw_marker = False
+    contract_name = None
     methods: List[Method] = []
-    for line in lines:
-        if line.startswith("define_contract"):
-            name = line.split()[1]
-        elif "(" in line and line.endswith(";"):
-            m = re.match(r'(\w[\w\s\*&:<>]*)\s+(\w+)\(([^)]*)\)(.*);', line)
-            if not m:
-                continue
-            ret, mname, args, suffix = m.groups()
-            ret = ret.strip()
-            args = args.strip()
-            const = "const" in suffix
+    preamble_lines: List[str] = []
+    postamble_lines: List[str] = []
 
-            arg_names, arg_types = [], []
-            if args:
-                parts = [a.strip() for a in args.split(",")]
-                for p in parts:
-                    tokens = p.split()
-                    if len(tokens) > 1:
-                        arg_types.append(" ".join(tokens[:-1]))
-                        arg_names.append(tokens[-1])
-                    else:
-                        arg_types.append(tokens[0])
-                        arg_names.append("")
-            method = Method(
-                ret=ret,
-                name=mname,
-                args=args,
-                arg_names=arg_names,
-                arg_types=arg_types,
-                const=const,
-            )
-            methods.append(method)
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+
+        if stripped.startswith("#include <cpp_contractgen>"):
+            saw_marker = True
+            # Reset preamble to only what comes *after* the marker
+            preamble_lines = []
+            continue
+
+        if stripped.startswith("define_contract"):
+            if not saw_marker:
+                raise SyntaxError(
+                    f"{path}:{i+1}: found define_contract before #include <cpp_contractgen>"
+                )
+            in_contract = True
+            contract_name = stripped.split()[1]
+            continue
+
+        if in_contract:
+            if stripped.startswith("};"):
+                in_contract = False
+                continue
+
+            if "(" in stripped and stripped.endswith(";"):
+                m = re.match(r'(\w[\w\s\*&:<>]*)\s+(\w+)\(([^)]*)\)(.*);', stripped)
+                if not m:
+                    continue
+                ret, mname, args, suffix = m.groups()
+                methods.append(Method(
+                    ret=ret.strip(),
+                    name=mname.strip(),
+                    args=args.strip(),
+                    const="const" in suffix
+                ))
+        else:
+            if contract_name is not None:
+                # after contract closing
+                postamble_lines.append(line)
+            else:
+                preamble_lines.append(line)
+
+    if not saw_marker:
+        raise SyntaxError(
+            f"{path}: missing required '#include <cpp_contractgen>' marker"
+        )
+
+    if not contract_name:
+        raise SyntaxError(
+            f"{path}: missing define_contract block"
+        )
 
     return Contract(
         source=os.path.basename(path),
-        name=name,
-        methods=methods
+        name=contract_name,
+        methods=methods,
+        preamble="\n".join(preamble_lines),
+        postamble="\n".join(postamble_lines),
     )

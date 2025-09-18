@@ -13,6 +13,6 @@ define_contract MyComb {
     generator.generate_contract(contract, outfile)
 
     text = outfile.read_text()
-    assert "struct MyComb_Traits" in text
+    assert "struct MyCombTraits" in text
     assert "setDelaySamples" in text
     assert "MyCombWrapper" in text

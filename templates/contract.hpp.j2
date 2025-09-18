@@ -1,11 +1,15 @@
 // Auto-generated from {{ contract.source }}
 #pragma once
 #include <type_traits>
+#include <utility>
+
+{{ contract.preamble }}
+
 
 // === Traits ================================================================
 
 template<typename T>
-struct {{ contract.name }}_Traits {
+struct {{ contract.name }}Traits {
 {% for m in contract.methods %}
     static constexpr bool has_{{m.name}} =
         std::is_same<decltype(&T::{{m.name}}),
@@ -16,14 +20,14 @@ struct {{ contract.name }}_Traits {
 };
 
 #define IMPLEMENTS_CONTRACT_{{ contract.name }}(X) \
-    using traits = {{ contract.name }}_Traits<X>; \
+    using traits = {{ contract.name }}Traits<X>; \
     static_assert(true, ""); // force instantiation
 
 // === Interface =============================================================
 
-class {{ contract.name }}_Interface {
+class {{ contract.name }}Interface {
 public:
-    virtual ~{{ contract.name }}_Interface() = default;
+    virtual ~{{ contract.name }}Interface() = default;
 {% for m in contract.methods %}
     virtual {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} = 0;
 {% endfor %}
@@ -50,7 +54,7 @@ protected:
 
 // Specialization for virtual
 template<typename Impl>
-class {{ contract.name }}Wrapper<Impl, true> : public {{ contract.name }}_Interface {
+class {{ contract.name }}Wrapper<Impl, true> : public {{ contract.name }}Interface {
     IMPLEMENTS_CONTRACT_{{ contract.name }}(Impl);
 
 public:
@@ -66,10 +70,70 @@ protected:
     Impl& impl_;
 };
 
+// === Owned Wrapper =========================================================
+
+template<typename Impl, bool use_virtual = false>
+class {{ contract.name }}OwnedWrapper {
+    IMPLEMENTS_CONTRACT_{{ contract.name }}(Impl);
+
+public:
+    template<typename... Args>
+    explicit {{ contract.name }}OwnedWrapper(Args&&... args)
+        : impl_storage_(std::forward<Args>(args)...) {}
+
+    {% for m in contract.methods %}
+    {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} {
+        {% if m.ret != "void" %}
+        return impl_storage_.{{ m.name }}({{ m.arg_names|join(", ") }});
+        {% else %}
+        impl_storage_.{{ m.name }}({{ m.arg_names|join(", ") }});
+        {% endif %}
+    }
+    {% endfor %}
+
+private:
+    Impl impl_storage_;
+};
+
+// Specialization for virtual
+template<typename Impl>
+class {{ contract.name }}OwnedWrapper<Impl, true> : public {{ contract.name }}Interface {
+    IMPLEMENTS_CONTRACT_{{ contract.name }}(Impl);
+
+public:
+    template<typename... Args>
+    explicit {{ contract.name }}OwnedWrapper(Args&&... args)
+        : impl_storage_(std::forward<Args>(args)...) {}
+
+    {% for m in contract.methods %}
+    {{ m.ret }} {{ m.name }}({{ m.args }}){% if m.const %} const{% endif %} override {
+        {% if m.ret != "void" %}
+        return impl_storage_.{{ m.name }}({{ m.arg_names|join(", ") }});
+        {% else %}
+        impl_storage_.{{ m.name }}({{ m.arg_names|join(", ") }});
+        {% endif %}
+    }
+    {% endfor %}
+
+private:
+    Impl impl_storage_;
+};
+
+
+
 // === Aliases ===============================================================
 
 template<typename Impl>
-using {{ contract.name }} = {{ contract.name }}Wrapper<Impl, false>;
+using {{ contract.name }}Direct = {{ contract.name }}Wrapper<Impl, false>;
 
 template<typename Impl>
 using {{ contract.name }}Virtual = {{ contract.name }}Wrapper<Impl, true>;
+
+template<typename Impl>
+using {{ contract.name }}OwnedDirect = {{ contract.name }}OwnedWrapper<Impl, false>;
+
+template<typename Impl>
+using {{ contract.name }}OwnedVirtual = {{ contract.name }}OwnedWrapper<Impl, true>;
+
+
+{{ contract.postamble }}
