@@ -9,9 +9,9 @@ struct {{ contract.name }}_Traits {
 {% for m in contract.methods %}
     static constexpr bool has_{{m.name}} =
         std::is_same<decltype(&T::{{m.name}}),
-                     {{m.ret}}(T::*)({{m.arg_types}}){% if m.const %} const{% endif %}>::value;
-    static_assert(has_{{m.name}}, 
-        "Type must implement {{m.ret}} {{m.name}}({{m.arg_types}}){% if m.const %} const{% endif %}");
+                     {{m.ret}}(T::*)({{ m.arg_types | join(", ") }}){% if m.const %} const{% endif %}>::value;
+    static_assert(has_{{m.name}},
+        "Type must implement {{m.ret}} {{m.name}}({{ m.arg_types | join(", ") }}){% if m.const %} const{% endif %}");
 {% endfor %}
 };
 
