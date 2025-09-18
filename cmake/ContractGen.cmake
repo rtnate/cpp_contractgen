@@ -1,11 +1,11 @@
-# Generate contracts using contractgen Python tool
+# Generate contracts using cpp_contractgen Python tool
 # Signature:
 # contractgen_generate_contracts(
 #     TARGET <target>
 #     SEARCH_DIR <dir>
 #     OUT_DIR <dir>
 #     [GEN_TARGET <name>]   # optional override for the custom target name
-#     [INCLUDE_VISIBILITY <PUBLIC|PRIVATE|INTERFACE|NONE> #optional
+#     [INCLUDE_VISIBILITY <PUBLIC|PRIVATE|INTERFACE|NONE>] # optional
 # )
 function(contractgen_generate_contracts)
     cmake_parse_arguments(
@@ -39,8 +39,24 @@ function(contractgen_generate_contracts)
 
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+    # Make sure the output directory exists
     file(MAKE_DIRECTORY ${CG_OUT_DIR})
 
+    # ----------------------------------------------------------------------
+    # Step 1: Emit dummy header at configure time
+    # ----------------------------------------------------------------------
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -m cpp_contractgen --emit-header --outdir ${CG_OUT_DIR}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE EMIT_RESULT
+    )
+    if(NOT EMIT_RESULT EQUAL 0)
+        message(FATAL_ERROR "cpp_contractgen: failed to emit dummy header into ${CG_OUT_DIR}")
+    endif()
+
+    # ----------------------------------------------------------------------
+    # Step 2: Generate headers for each contract at build time
+    # ----------------------------------------------------------------------
     file(GLOB CONTRACT_INPUTS "${CG_SEARCH_DIR}/*.hpp.contract")
 
     set(GENERATED_HEADERS "")
@@ -63,14 +79,15 @@ function(contractgen_generate_contracts)
         list(APPEND GENERATED_HEADERS ${CONTRACT_OUTPUT})
     endforeach()
 
-    # Pick target name
+    # ----------------------------------------------------------------------
+    # Step 3: Define custom target
+    # ----------------------------------------------------------------------
     if(CG_GEN_TARGET)
         set(GEN_TARGET_NAME ${CG_GEN_TARGET})
     else()
         set(GEN_TARGET_NAME ${CG_TARGET}_contracts)
     endif()
 
-    # Custom target for codegen
     add_custom_target(${GEN_TARGET_NAME} DEPENDS ${GENERATED_HEADERS})
 
     # Ensure build order: contracts -> target
