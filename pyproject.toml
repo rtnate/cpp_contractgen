@@ -12,3 +12,7 @@ requires-python = ">=3.8"
 
 [project.scripts]
 contractgen = "contractgen.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["build", "build-*", "build-tests", "dist", ".git", ".tox", ".venv", ".pio"]

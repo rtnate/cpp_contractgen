@@ -1,6 +1,7 @@
 build
-test-build
+build-tests
 .pytest_cache
+generated
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
