@@ -51,7 +51,7 @@ function(contractgen_generate_contracts)
 
         add_custom_command(
             OUTPUT ${CONTRACT_OUTPUT}
-            COMMAND ${Python3_EXECUTABLE} -m contractgen
+            COMMAND ${Python3_EXECUTABLE} -m cpp_contractgen
                     ${CONTRACT_FILE}
                     --outdir ${CG_OUT_DIR}
             DEPENDS ${CONTRACT_FILE}

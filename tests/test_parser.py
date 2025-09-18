@@ -1,5 +1,5 @@
 import pathlib
-from contractgen import parser
+from cpp_contractgen import parser
 
 def test_parse_contract(tmp_path):
     file = tmp_path / "MyComb.hpp.contract"

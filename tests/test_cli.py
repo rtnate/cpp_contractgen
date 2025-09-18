@@ -4,7 +4,7 @@ import sys
 
 def run_cli(args, cwd):
     result = subprocess.run(
-        [sys.executable, "-m", "contractgen"] + args,
+        [sys.executable, "-m", "cpp_contractgen"] + args,
         cwd=cwd,
         capture_output=True,
         text=True
