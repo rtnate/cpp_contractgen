@@ -21,16 +21,17 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 include(${CMAKE_SOURCE_DIR}/cmake/ContractGen.cmake)
 
 contractgen_generate_contracts(
-    ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_BINARY_DIR}/generated
+    TARGET contract_tests
+    SEARCH_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+    OUT_DIR ${CMAKE_BINARY_DIR}/generated/contract_tests
 )
 
-target_include_directories(contract_tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
-add_dependencies(contract_tests generate_contracts)
+#target_include_directories(contract_tests PRIVATE ${CMAKE_BINARY_DIR}/generated)
+#add_dependencies(contract_tests generate_contracts)
 
 
 # Make the tests depend on generated contracts
-add_dependencies(contract_tests generate_contracts)
+#add_dependencies(contract_tests generate_contracts)
 
 target_link_libraries(contract_tests
     GTest::gtest_main
