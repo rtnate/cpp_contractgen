@@ -1,4 +1,5 @@
 
+#include <cpp_contractgen>
 #include <stdint.h>
 
 #define MY_DOES_IT_WORK_MACRO(X) true
