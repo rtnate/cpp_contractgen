@@ -15,6 +15,7 @@ class Contract:
     source: str
     name: str
     methods: List[Method]
+    raw_block: str  # NEW: the raw define_contract {...};
     preamble: str
     postamble: str
 
@@ -30,6 +31,7 @@ def parse_contract(path: str) -> Contract:
     methods: List[Method] = []
     preamble_lines: List[str] = []
     postamble_lines: List[str] = []
+    contract_lines: List[str] = []  # capture raw contract
 
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -47,9 +49,11 @@ def parse_contract(path: str) -> Contract:
                 )
             in_contract = True
             contract_name = stripped.split()[1]
+            contract_lines.append(line)
             continue
 
         if in_contract:
+            contract_lines.append(line)
             if stripped.startswith("};"):
                 in_contract = False
                 continue
@@ -86,6 +90,7 @@ def parse_contract(path: str) -> Contract:
         source=os.path.basename(path),
         name=contract_name,
         methods=methods,
+        raw_block="\n".join(contract_lines),  # join captured block
         preamble="\n".join(preamble_lines),
         postamble="\n".join(postamble_lines),
     )
