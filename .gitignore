@@ -2,7 +2,7 @@ build
 build-tests
 .pytest_cache
 generated
-
+notebook
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
