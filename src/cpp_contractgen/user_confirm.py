@@ -5,7 +5,6 @@ import os
 class PromptError(Exception):
     pass
 
-
 class ConfirmManager:
     def __init__(self, yes: bool = False, no: bool = False, stream=None):
         """
@@ -38,12 +37,25 @@ class ConfirmManager:
         Supports interactive [y/n/a] where 'a' means 'yes to all'.
         Returns True if overwrite is allowed, False otherwise.
         """
+        # --- NEW: Check for a non-interactive environment first ---
+        if not sys.stdin.isatty():
+            # If in a non-interactive environment and neither flag is set,
+            # raise an exception so the main CLI can handle it.
+            if not self.always_yes and not self.always_no:
+                raise PromptError(
+                    "Interactive prompt required in a non-interactive environment."
+                    " Please use --yes or --no."
+                )
+            # Otherwise, the --yes or --no flag will handle the response
+            # as intended for automated builds.
+            return self.always_yes
+
+        # --- EXISTING INTERACTIVE PROMPT LOGIC ---
         if self.always_yes:
             return True
         if self.always_no:
             return False
 
-        # Interactive prompt
         while True:
             self.stream.write(
                 f"Are you sure you want to overwrite {prefix}: {file}? [y/n/a] "
