@@ -217,7 +217,7 @@ def execute_job(job: Job, userConfirm: "ConfirmManager|None" = None) -> int:
 
     except Exception as e:
         logging.critical("Job failed for %s: %s", in_file, e, exc_info=True)
-        return 99
+        raise e
 
 def build_and_execute_policy(policy: Policy, userConfirm: Optional[ConfirmManager] = None):
     files = discover_files(policy)
@@ -225,12 +225,10 @@ def build_and_execute_policy(policy: Policy, userConfirm: Optional[ConfirmManage
     diff_count_result = 0
     for job in jobs:
             result = execute_job(job, userConfirm)
-            if result >= 10:
-                return 10
-            else:
-                diff_count_result += result
-    if diff_count_result > 2:
-        return 2
+            diff_count_result += result
+    if diff_count_result > 0:
+        #TODO: output results 
+        return 1
     else:
-        return diff_count_result
+        return 0
     
