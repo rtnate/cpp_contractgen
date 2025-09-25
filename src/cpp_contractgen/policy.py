@@ -34,6 +34,8 @@ class Policy:
     use_std_out: bool = False 
     # Force Sticky Flag 
     force_flag: bool = False
+    # Temporary Directory - Provided For Future Use If Necessary
+    temp_directory: Optional[str] = None
     # Attached overrides
     contract_overrides: List[ContractOverride] = field(default_factory=list)
 
