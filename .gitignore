@@ -3,6 +3,13 @@ build-tests
 .pytest_cache
 generated
 notebook
+# likely to be accidentally commited to source code - can override manuall as needed
+examples/*.contract.hpp 
+examples/*.hpp
+ !examples/*.hpp.contract 
+*.contract.hpp 
+*.hpp
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
