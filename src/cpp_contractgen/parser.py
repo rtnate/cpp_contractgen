@@ -2,7 +2,7 @@ import re
 import os
 from dataclasses import dataclass
 from typing import List
-
+from .files import read_file_text
 @dataclass
 class Method:
     ret: str
@@ -20,9 +20,9 @@ class Contract:
     postamble: str
 
 def parse_contract(path: str) -> Contract:
-    with open(path) as f:
-        text = f.read()
-
+    # with open(path) as f:
+    #     text = f.read()
+    text = read_file_text(path)
     lines = [l.rstrip() for l in text.splitlines()]
 
     in_contract = False
