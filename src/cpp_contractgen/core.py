@@ -3,7 +3,7 @@ from .policy import Policy
 from dataclasses import dataclass, field
 from pathlib import Path
 import logging
-from typing import Optional
+from typing import Optional, List
 from .policy import OnBuildPolicy, GenerationMode
 from .user_confirm import ConfirmManager
 from .parser import parse_contract
@@ -35,15 +35,15 @@ class Job:
 def create_policy_from_args_and_config(args, config: Config) -> Policy:
     return Policy.from_args_and_config(args, config)
 
-def discover_files_emit_header(policy: Policy) -> list[Path]:
+def discover_files_emit_header(policy: Policy) -> List[Path]:
     logging.debug("Emit-header mode: no contract files to discover")
     return []
 
-def discover_files_single_file_mode(policy: Policy) -> list[Path]:
+def discover_files_single_file_mode(policy: Policy) -> List[Path]:
     # Single file mode
     """
     Discover input contract files based on the policy.
-    Returns a list of Paths to .hpp.contract files.
+    Returns a List of Paths to .hpp.contract files.
     """
     logging.debug("Generation mode: single - Policy contract: %s" %(policy.in_file))
     if not policy.in_file:
@@ -55,7 +55,7 @@ def discover_files_single_file_mode(policy: Policy) -> list[Path]:
     else:
         return []
     
-def discover_files_batch_mode(policy: Policy) -> list[Path]:
+def discover_files_batch_mode(policy: Policy) -> List[Path]:
     # Batch search
     logging.debug("Generation mode: batch - Policy search: %s" %(policy.search_dirs))
     search_dirs = policy.search_dirs or []
@@ -63,14 +63,14 @@ def discover_files_batch_mode(policy: Policy) -> list[Path]:
     logging.info("Total contracts discovered: %d", len(files))
     return sorted(files)
 
-def discover_files(policy: Policy) -> list[Path]:
+def discover_files(policy: Policy) -> List[Path]:
     """
     Discover contract files based on the given Policy.
     
     Returns:
         List of Paths to .hpp.contract files.
     """
-    files: list[Path] = []
+    files: List[Path] = []
     if policy.generation_mode == GenerationMode.EMIT_HEADER:
         return discover_files_emit_header(policy)
     elif policy.generation_mode == GenerationMode.SINGLE_FILE: 
@@ -122,11 +122,11 @@ def build_emit_header_job(policy: Policy) -> Job:
         policy=policy,
     )
 
-def build_jobs(policy: Policy, files: list[Path]) -> list[Job]:
+def build_jobs(policy: Policy, files: List[Path]) -> List[Job]:
     """
-    Build a list of Job objects from discovered files and policy.
+    Build a List of Job objects from discovered files and policy.
     """
-    jobs: list[Job] = []
+    jobs: List[Job] = []
 
     if policy.generation_mode == GenerationMode.EMIT_HEADER:
         jobs.append(build_emit_header_job(policy))
