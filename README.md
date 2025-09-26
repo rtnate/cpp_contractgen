@@ -2,22 +2,44 @@
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/rtnate/cpp_contractgen)
 ![Dynamic TOML Badge](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Frtnate%2Fcpp_contractgen%2Frefs%2Fheads%2Fdev%2Fpyproject.toml&query=%24.project.version&label=version)
 ![Dynamic TOML Badge](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Frtnate%2Fcpp_contractgen%2Frefs%2Fheads%2Fdev%2Fpyproject.toml&query=%24.project.requires-python&label=python&color=FF4040)
-![GitHub License](https://img.shields.io/github/license/rtnate/cpp_contractgen)
+![Static Badge](https://img.shields.io/badge/license-MIT-lightgrey)
 
+## **Generate and Validate C++ Contract Wrappers**
 
-**cpp_contractgen** is a Python code generator that turns simple declarative C++ “contracts” into traits, interfaces, and wrappers. This lets you write **compile-time enforced interfaces** without relying on virtual functions — or optionally generate runtime virtual interfaces when you need them.
+**cpp_contractgen** is a Python code generator that turns simple declarative C++ “contracts” into traits, interfaces, and wrappers. 
+This project aims to bring design-by-contract (DbC) principles easily into C++ projects using a simple, declarative syntax.
+This allows for compile-time polymorphism with an enforced interface for use in circumstances where virtual overhead is 
+costly (microcontrollers, highly-inlined dsp implementations, etc)
+
+## **Installation (Beta v0.1.0)**
+
+Since this is a pre-release version, you can install the package directly from the source repository using pip.
+
+### **Using pip and Git**
+
+Ensure you have Python v3.8 or better and git installed, then run:  
+```Shell
+pip install git+https://github.com/rtnate/cpp_contractgen@v0.1.0
+```
+
+### **Development Dependencies**
+
+For development, testing, and contributions, install the project in editable mode including the test dependency group:  
+```
+pip install -e .[dev]
+```
 
 ## **Quick Example**
 
 ### **Input (MyComb.hpp.contract)**
-
+```c
 define_contract MyComb {  
     bool setDelaySamples(uint32_t d);  
     float readTail(uint32_t i) const;  
     void writeTail(uint32_t i, float s);  
     void advance();  
 };
-
+```
 ### **Output (MyComb.contract.hpp)**
 
 Generated file contains:
@@ -213,17 +235,6 @@ iface->advance(); // virtual dispatch
 * **Zero runtime cost**: when using compile-time wrappers (no vtables).  
 * **Optional virtual dispatch**: for plugin-like use cases.   
 * **Familiar C++ syntax**: write interfaces almost like pure virtual classes.
-
-## **Installation**
-
-pip install cpp-contractgen
-
-or for development:  
-git clone [https://github.com/rtnate/cpp_contractgen.git](https://github.com/rtnate/cpp_contractgen.git)  
-cd cpp_contractgen  
-pip install -e .[dev]
-
-*(Note: Use .[dev] to install the development dependencies like pytest.)*
 
 ## **Testing**
 
