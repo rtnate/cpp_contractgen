@@ -1,0 +1,47 @@
+# This workflow is responsible for running tests and checking code quality
+# whenever code is pushed or a pull request is created.
+
+name: Python CI / Test
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    # Run tests across a matrix of Python versions and OS environments
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        # Cache pip dependencies based on pyproject.toml hash
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
+
+    - name: Install dependencies
+      # We install the package in editable mode (-e) and include the optional 'test' group
+      # defined in pyproject.toml to get pytest and any other testing tools.
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Run Python tests with pytest
+      # Execute pytest. It automatically discovers all tests in the project.
+      run: |
+        python -m pytest
