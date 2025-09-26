@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "contractgen"
 version = "0.1.0"
 description = "Generate C++ contracts, traits, and interfaces via custom syntax"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "Nate Taylor", email = "nate@rtelectronix.com" }]
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = ["jinja2"]
@@ -17,3 +17,9 @@ cpp-contractgen = "cpp_contractgen.cli:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = ["build", "build-*", "build-tests", "dist", ".git", ".tox", ".venv", ".pio"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock"
+]
