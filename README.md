@@ -1,178 +1,245 @@
-# cpp_contractgen
+# **cpp_contractgen**
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/rtnate/cpp_contractgen)
+![Dynamic TOML Badge](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Frtnate%2Fcpp_contractgen%2Frefs%2Fheads%2Fdev%2Fpyproject.toml&query=%24.project.version&label=version)
+![Dynamic TOML Badge](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Frtnate%2Fcpp_contractgen%2Frefs%2Fheads%2Fdev%2Fpyproject.toml&query=%24.project.requires-python&label=python&color=FF4040)
+![GitHub License](https://img.shields.io/github/license/rtnate/cpp_contractgen)
 
-**cpp_contractgen** is a Python code generator that turns simple declarative C++ “contracts” into traits, interfaces, and wrappers. This lets you write **compile-time enforced interfaces** without relying on virtual functions — or optionally generate runtime `virtual` interfaces when you need them.
 
----
+**cpp_contractgen** is a Python code generator that turns simple declarative C++ “contracts” into traits, interfaces, and wrappers. This lets you write **compile-time enforced interfaces** without relying on virtual functions — or optionally generate runtime virtual interfaces when you need them.
 
-## 🚀 Quick Example
+## **Quick Example**
 
-### Input (`MyComb.hpp.contract`)
-```cpp
-define_contract MyComb {
-    bool setDelaySamples(uint32_t d);
-    float readTail(uint32_t i) const;
-    void writeTail(uint32_t i, float s);
-    void advance();
+### **Input (MyComb.hpp.contract)**
+
+define_contract MyComb {  
+    bool setDelaySamples(uint32_t d);  
+    float readTail(uint32_t i) const;  
+    void writeTail(uint32_t i, float s);  
+    void advance();  
 };
-```
 
-### Output (`MyComb.contract.hpp`)
+### **Output (MyComb.contract.hpp)**
+
 Generated file contains:
 
-1. **Traits class** — checks at compile time that a type implements the contract.
-   ```cpp
-   template<typename T>
-   struct MyComb_Traits {
-       static constexpr bool has_setDelaySamples =
-           std::is_same<decltype(&T::setDelaySamples),
-                        bool(T::*)(uint32_t)>::value;
-       static_assert(has_setDelaySamples,
-           "Type must implement bool setDelaySamples(uint32_t)");
-       // ... repeats for other methods ...
+1. **Traits class** — checks at compile time that a type implements the contract. 
+```cpp
+   template<typename T>  
+   struct MyComb_Traits {  
+       static constexpr bool has_setDelaySamples =  
+           std::is_same<decltype(&T::setDelaySamples),  
+                        bool(T::*)(uint32_t)>::value;  
+       static_assert(has_setDelaySamples,  
+           "Type must implement bool setDelaySamples(uint32_t)");  
+       // ... repeats for other methods ...  
    };
 
-   #define IMPLEMENTS_CONTRACT_MyComb(X)        using traits = MyComb_Traits<X>;         (void)sizeof(traits) // force instantiation
-   ```
+   #define IMPLEMENTS_CONTRACT_MyComb(X) \       
+   using traits = MyComb_Traits<X>; \
+   (void)sizeof(traits) // force instantiation
+```
 
-2. **Interface (optional runtime polymorphism)**  
-   ```cpp
-   class MyComb_Interface {
-   public:
-       virtual ~MyComb_Interface() = default;
-       virtual bool setDelaySamples(uint32_t d) = 0;
-       virtual float readTail(uint32_t i) const = 0;
-       virtual void writeTail(uint32_t i, float s) = 0;
-       virtual void advance() = 0;
+2. Interface (optional runtime polymorphism) 
+```cpp  
+   class MyCombInterface {  
+        public:  
+            virtual ~MyComb_Interface() = default;  
+            virtual bool setDelaySamples(uint32_t d) = 0;  
+            virtual float readTail(uint32_t i) const = 0;  
+            virtual void writeTail(uint32_t i, float s) = 0;  
+            virtual void advance() = 0;  
    };
-   ```
+```
 
-3. **Wrapper** — bridges your implementation with either compile-time or runtime polymorphism.
-   ```cpp
-   template<typename Impl, bool use_virtual = false>
+3. **Wrapper** — bridges your implementation with either compile-time or runtime polymorphism.  
+```cpp
+   template<typename Impl, bool use_virtual = false>  
    class MyCombWrapper { /* calls impl_.method() */ };
 
-   template<typename Impl>
+   template<typename Impl>  
    using MyComb = MyCombWrapper<Impl, false>; // compile-time only
 
-   template<typename Impl>
+   template<typename Impl>  
    using MyCombVirtual = MyCombWrapper<Impl, true>; // virtual dispatch
-   ```
+```
 
----
+## **Command Line Usage**
 
-## 📖 Syntax
+The cpp-contractgen tool supports three main modes of operation:
 
-A contract definition looks like a **struct of pure function signatures**:
+### **1. Single-File Mode (Requires both input and output paths)**
 
-```cpp
-define_contract Name {
-    return_type method_name(args...);
-    return_type method_name(args...) const;
+Processes a single contract file:  
+```shell
+cpp-contractgen --contract src/contracts/MyComb.hpp.contract --output include/generated/MyComb.contract.hpp
+```
+
+Generates file in cwd (becomes "./MyComb.contract.hpp"):
+```shell
+cpp-contractgen --contract src/contracts/MyComb.hpp.contract
+```
+
+Optionally send output to stdout:  
+```shell
+cpp-contractgen --contract src/contracts/MyComb.hpp.contract --output -
+cpp-contractgen --contract src/contracts/MyComb.hpp.contract --output
+cpp-contractgen --contract src/contracts/MyComb.hpp.contract -o
+```
+Optionally read from stdin:
+```shell
+cpp-contractgen --contract - --output include/generated/MyComb.contract.hpp
+```
+
+### **2. Batch Mode (For discovery and multiple files)**
+
+Scans specified directories or uses paths from a configuration file.  
+
+Scan multiple directories for *.hpp.contract files:
+```shell
+cpp-contractgen --search contracts/folder1 contracts/folder2
+```
+
+Use a config file for detailed policy and file paths:
+```shell
+cpp-contractgen   #searches cwd for cpp_contract.json by default
+cpp-contractgen --config cpp_contract.json #specify explicity
+```
+
+Override the output directory (preserves subfolders of search directories):
+```shell
+cpp-contractgen --search contracts/folder1 --outdir generated
+```
+
+### **3. Emit-Header Mode (Utility)**
+
+Generates a dummy header file that can be included by intellisense to help 
+parsing contract files:
+```Shell
+# emits cpp_contractgen to cwd
+cpp-contractgen --emit-header 
+# specify the output directory
+cpp-contractgen --emit-header include #generates include/cpp_contractgen
+cpp-contractgen --emit-header --outdir .vscode #generates .vscode/cpp_contractgen
+# or the output file explicitly
+cpp-contractgen --emit-header include/myheader.h #generates include/myheader.h
+cpp-contractgen --emit-header --output dummy_header.hpp #generates ./dummy_header.h
+# or to stdout
+cpp-contractgen --emit-header -o
+```
+
+### **CLI Flags**
+
+| Flag | Description |
+| :---- | :---- |
+| -y, --yes | Auto-confirm all prompts (e.g., automatically overwrite existing files). |
+| --no  | Auto-reject all prompts (e.g., automatically overwrite existing files). |
+| --mode {debug, release} | Chooses configuration build mode (debug default) |
+|  --debug, --release     | Chooses configuration build mode |
+| -q, --quiet | Suppress unnecessary logging |
+| -v, --verbose | Generate additional logging |
+| --check  | Runs 'check' mode only and returns the number of contracts that have changed |
+| --diff   | Runs 'check' mode only and returns a detailed diff of changed contracts |
+| --overwrite | Overwrite changed contracts (default behaviour is to generated new only) |
+| --contract | Specify input contract (single file mode, accepts file or '-' for stdin) |
+| -o, --output | Specify output file (use nothing or '-' for stdout, not valid for batch generation) |
+| --outdir | Specify output directory - uses input or default filenames for generated headers |
+| --init | Generated a default cpp_contractgen.json to cwd |
+| --version | Print the current version and exit. |
+
+## **Syntax**
+
+A contract definition looks like a **struct of pure function signatures**: 
+```c
+#include <cpp_contractgen>
+define_contract Name {  
+    return_type method_name(args...);  
+    return_type method_name(args...) const;  
 };
 ```
 
 Rules:
-- Must begin with `define_contract <Name> {`.
-- End with `};`.
-- Each line inside must look like a normal C++ function declaration (ending with `;`).
-- Supported:
-  - return type (`bool`, `void`, `float`, `T&`, etc.)
-  - arguments with types and names
-  - optional `const` at the end
+* Contract parsing begins at `#include <cpp_contractgen>` and it is required
+* Contracts themselves Must begin with define_contract <Name> {.  
+* End with };.  
+* Each line inside must look like a normal C++ function declaration (ending with ;).  
+* Supported:  
+  * return type (bool, void, float, T&, etc.)  
+  * arguments with types and names  
+  * optional const at the end
+* Header content outside of `define_contract <Name>{ ... };` will be preserved
 
----
+## **Using in your project**
 
-## 🛠️ Using in your project
+## **Usage in C++**
 
-### With CMake
+### **Enforcing a contract**
 
-You can integrate contract generation in your build:
-
-```cmake
-include(cmake/ContractGen.cmake)
-
-add_library(mylib mylib.cpp)
-
-contractgen_generate_contracts(
-    TARGET mylib
-    SEARCH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/contracts
-    OUT_DIR ${CMAKE_BINARY_DIR}/generated/mylib
-    INCLUDE_VISIBILITY PUBLIC   # or PRIVATE / INTERFACE / NONE
-)
-```
-
-This:
-- Scans `contracts/*.hpp.contract`
-- Generates headers into `build/generated/mylib/`
-- Adds them as a dependency of `mylib`
-- Adds include paths so you can `#include "MyComb.contract.hpp"`
-
----
-
-## ✅ Usage in C++
-
-### Enforcing a contract
 ```cpp
-class MyDerived {
+class MyDerived {  
     IMPLEMENTS_CONTRACT_MyComb(MyDerived);
 
-public:
-    bool setDelaySamples(uint32_t d) { ... }
-    float readTail(uint32_t i) const { ... }
-    void writeTail(uint32_t i, float s) { ... }
-    void advance() { ... }
+public:  
+    bool setDelaySamples(uint32_t d) { ... }  
+    float readTail(uint32_t i) const { ... }  
+    void writeTail(uint32_t i, float s) { ... }  
+    void advance() { ... }  
 };
 ```
 
-If you forget a method or get the signature wrong, the compiler fails with a descriptive `static_assert`.
+If you forget a method or get the signature wrong, the compiler fails with a descriptive static_assert.
 
----
+### **Compile-time wrapper**
 
-### Compile-time wrapper
 ```cpp
-MyDerived impl;
+MyDerived impl;  
 MyComb<MyDerived> comb(impl);
 
 comb.advance();
 ```
 
-### Runtime wrapper
+### **Runtime wrapper**
+
 ```cpp
-MyDerived impl;
+MyDerived impl;  
 MyCombVirtual<MyDerived> comb(impl);
 
-MyComb_Interface* iface = &comb;
+MyCombInterface* iface = &comb;  
 iface->advance(); // virtual dispatch
 ```
 
----
+## **Why use cpp_contractgen?**
 
-## ⚡ Why use cpp_contractgen?
-- **Safer DSP / systems code**: contracts guarantee your class matches the required interface.  
-- **Zero runtime cost**: when using compile-time wrappers (no vtables).  
-- **Optional virtual dispatch**: for plugin-like use cases.  
-- **Integration with CMake**: automatic header generation and inclusion.  
-- **Familiar C++ syntax**: write interfaces almost like pure virtual classes.
+* **Safer DSP / MCU code**: contracts guarantee your class matches the required interface.  
+* **Zero runtime cost**: when using compile-time wrappers (no vtables).  
+* **Optional virtual dispatch**: for plugin-like use cases.   
+* **Familiar C++ syntax**: write interfaces almost like pure virtual classes.
 
----
+## **Installation**
 
-## 📦 Installation
-
-```bash
 pip install cpp-contractgen
-```
 
-or for development:
+or for development:  
+git clone [https://github.com/rtnate/cpp_contractgen.git](https://github.com/rtnate/cpp_contractgen.git)  
+cd cpp_contractgen  
+pip install -e .[dev]
 
-```bash
-git clone https://github.com/youruser/cpp_contractgen.git
-cd cpp_contractgen
-pip install -e .
-```
+*(Note: Use .[dev] to install the development dependencies like pytest.)*
 
----
+## **Testing**
 
-## 🧪 Testing
+* Python unit tests with pytest  
+* C++ traits tests with GoogleTest (CMake integration provided) - WIP
 
-- Python unit tests with `pytest`
-- C++ traits tests with GoogleTest (CMake integration provided)
+## **Contributing**
+
+We welcome contributions! To get started:
+
+1. **Fork** the repository on GitHub.  
+2. **Clone** your forked repository.  
+3. **Create a feature branch** (git checkout -b feature/my-new-feature).  
+4. **Install dependencies** (pip install -e .[test]).  
+5. **Write tests** for your changes.  
+6. **Run tests** (python -m pytest).  
+7. **Commit** your changes (git commit -m 'feat: added new contract feature').  
+8. **Push** to your branch (git push origin feature/my-new-feature).  
+9. **Open a Pull Request** against the main branch.
