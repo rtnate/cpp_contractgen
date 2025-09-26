@@ -3,7 +3,7 @@ import sys
 import hashlib
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from your_project_name import files as files_module  # Replace with your actual module name
+from cpp_contractgen import files as files_module  # Replace with your actual module name
 
 # --- Test file_exists ---
 
@@ -131,7 +131,7 @@ def test_write_file_to_stdout(capsys):
 def test_write_file_to_stderr(capsys):
     """Test that write_file correctly writes to stderr."""
     test_text = "stderr test\n"
-    files_module.write_file("stderr", test_text)
+    files_module.write_file("<stderr>", test_text)
     
     captured = capsys.readouterr()
     assert captured.err == test_text
