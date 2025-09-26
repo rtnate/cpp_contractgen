@@ -158,12 +158,12 @@ def hash_file(path: Path) -> str:
     text = read_file_text(path, strict=True)
     return hash_string(text)
 
-def extract_hash_from_text(text: str) -> str | None:
+def extract_hash_from_text(text: str) -> Union[str, None]:
     """Find an embedded hash in a generated file string."""
     m = re.search(r"// cpp_contractgen:hash=([0-9a-f]+)", text)
     return m.group(1) if m else None
  
-def extract_hash_from_file(path: Path|str) -> str | None:
+def extract_hash_from_file(path: Union[Path,str]) -> Union[str, None]:
     """Find an embedded hash in a generated file."""
     text = read_file_text(path, strict=True)
     return extract_hash_from_text(text)
