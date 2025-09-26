@@ -4,32 +4,65 @@ import sys
 import hashlib
 import re
 import logging
+import datetime
 from pathlib import Path
 from typing import List, Optional, Union, TextIO
 from contextlib import contextmanager
 
 PathLike = Union[str, Path]
 CONTRACT_EXT = ".hpp.contract"
-SPECIAL_STREAMS = {"-", "stdout", "stderr"}
+SPECIAL_STREAMS = {"-", '<stdin>', '<stdout>', '<stderr>'}
 
 def file_exists(file: Optional[PathLike]) -> bool:
     if not file or str(file) in SPECIAL_STREAMS:
         return False
     return Path(file).exists()
     
-def resolve_file(file: Optional[PathLike], strict=False) -> Optional[Path]:
-    if not file:
-        if strict:
-            raise FileNotFoundError("No file path provided.")
-        return None
+def resolve_file(file_arg: Optional[Union[str, Path, object]],
+    strict: bool = False,
+    default: Optional[Union[str, Path]] = None
+) -> Optional[Union[Path, str]]:
+    """
+    Resolves a file argument to a usable Path object or special stream.
 
-    if str(file) in SPECIAL_STREAMS:
-        return file  # Return the special string, as it's not a real path
+    Args:
+        file_arg: The argument from argparse, which can be a file stream, Path,
+                  string path, or None.
+        strict (bool): If True, raises a FileNotFoundError if the file does not exist.
+        default: The default value to return if file_arg is None.
 
-    path = Path(file)
+    Returns:
+        Optional[Union[Path, str]]: A Path object if a valid file path is resolved,
+                                    or a string for special streams like '<stdin>'.
+    """
+    if not file_arg:
+        # If no file is provided, return the default stream or raise an error in strict mode.
+        if strict and not default:
+            raise FileNotFoundError("No file path provided and strict mode is enabled.")
+        return default
+
+    # Check for argparse file-like object and handle special streams
+    if hasattr(file_arg, 'name'):
+        name = file_arg.name
+        if name in ['<stdin>', '<stdout>', '<stderr>']:
+            return name
+        
+    # Check for a path or string representation of a special stream
+    if isinstance(file_arg, str):
+        if file_arg in ['-', '<stdin>', '<stdout>', '<stderr>']:
+            return file_arg
+        path = Path(file_arg)
+    elif isinstance(file_arg, Path):
+        path = file_arg
+    else:
+        # Fallback for unexpected types
+        raise TypeError(f"Cannot resolve file argument of type: {type(file_arg)}")
+
+    # Handle strict mode and path resolution
     if strict and not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
-    return path.resolve(strict=False) # Use resolve to get absolute path
+
+    return path.resolve()
     
 def find_files(search_dirs: List[PathLike]) -> List[Path]:
     """Find all *.hpp.contract files in the given directories or single files."""
@@ -62,25 +95,7 @@ def find_file(contract: PathLike) -> Optional[Path]:
         logging.error("Contract file not found: %s", p)
         return None
 
-def open_output(target: Optional[PathLike], use_stderr: bool = False) -> TextIO:
-    """
-    Open a writable output stream:
-    - None → stdout (or stderr if requested)
-    - "-" → stdout
-    - "stdout" → stdout
-    - "stderr" → stderr
-    - Path/str → real file
-    """
-    if target is None:
-        return sys.stderr if use_stderr else sys.stdout
-    logging.debug("Write Target: %s", target)
-    t = str(target).lower()
-    if t in ("-", "stdout"):
-        return sys.stdout
-    if t == "stderr":
-        return sys.stderr
 
-    return open(target, "w", encoding="utf-8")
 
 @contextmanager
 def open_output(target: Optional[PathLike], use_stderr: bool = False) -> TextIO:
@@ -95,10 +110,12 @@ def open_output(target: Optional[PathLike], use_stderr: bool = False) -> TextIO:
         yield sys.stderr if use_stderr else sys.stdout
     elif isinstance(target, str):
         target_str = target.lower()
-        if target_str in ("-", "stdout"):
+        if target_str in ("-", "<stdout>"):
             yield sys.stdout
-        elif target_str == "stderr":
+        elif target_str == "<stderr>":
             yield sys.stderr
+        elif target_str == "<stdin>":
+            raise ValueError("Invalid output target: Cannot write to standard input ('<stdin>').")
         else:
             f = open(target, "w", encoding="utf-8")
             try:
@@ -151,3 +168,8 @@ def extract_hash_from_file(path: Path|str) -> str | None:
     text = read_file_text(path, strict=True)
     return extract_hash_from_text(text)
 
+def generate_temp_filename(content: str, extension: str) -> str:
+    """Generates a unique, timestamped filename based on content hash."""
+    content_hash = hashlib.sha256(content.encode()).hexdigest()[:8]
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    return f"Contract_{timestamp}_{content_hash}.{extension}"
